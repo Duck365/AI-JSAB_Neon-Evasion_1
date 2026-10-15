@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Evasion</title>
+    <title>Neon Evasion - Full Fight</title>
     <style>
         body {
             margin: 0;
@@ -40,10 +40,6 @@
             margin-bottom: 2rem;
             color: #00FF00;
             text-shadow: 0 0 15px #00FF00;
-        }
-        .victory-text {
-            color: #00FFFF;
-            text-shadow: 0 0 15px #00FFFF;
         }
         h2 { font-size: 2.5rem; margin-bottom: 1.5rem; }
         button {
@@ -99,6 +95,15 @@
             color: red;
             text-shadow: 0 0 15px red;
         }
+        .victory-text {
+            color: #FF00FF;
+            text-shadow: 0 0 20px #FF00FF;
+        }
+        .stats-text {
+            color: #888;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -107,18 +112,10 @@
     <!-- Main Menu -->
     <div id="menu-screen" class="screen active">
         <h1>NEON EVASION</h1>
-        <button onclick="showScreen('mode-screen')">Start</button>
+        <button onclick="showScreen('difficulty-screen')">Full Fight</button>
         <button onclick="showScreen('customize-screen')">Customize</button>
         <button onclick="showScreen('keybinds-screen')">Keybinds</button>
         <button onclick="showScreen('credits-screen')">Credits</button>
-    </div>
-
-    <!-- Mode Screen -->
-    <div id="mode-screen" class="screen">
-        <h2>SELECT MODE</h2>
-        <button onclick="selectMode('Endless')">Endless</button>
-        <button onclick="selectMode('60 Seconds')">60 Seconds</button>
-        <button onclick="showScreen('menu-screen')">Back</button>
     </div>
 
     <!-- Difficulty Screen -->
@@ -127,7 +124,8 @@
         <button onclick="startGame(6, 'Easy')">Easy (6 Hits)</button>
         <button onclick="startGame(3, 'Normal')">Normal (3 Hits)</button>
         <button onclick="startGame(1, 'Hardcore')">Hardcore (1 Hit)</button>
-        <button onclick="showScreen('mode-screen')">Back</button>
+        <br>
+        <button onclick="showScreen('menu-screen')">Back</button>
     </div>
 
     <!-- Customize Screen -->
@@ -168,14 +166,18 @@
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="screen">
         <h1 class="danger-text">SYSTEM FAILURE</h1>
-        <p><span id="run-details"></span><br><span id="survival-time">0</span> seconds</p>
+        <p class="stats-text" id="death-stats-mode">Full Fight, Difficulty</p>
+        <p>Time Survived: <span id="survival-time">0</span> seconds</p>
+        <br>
         <button onclick="showScreen('menu-screen')">MAIN MENU</button>
     </div>
 
     <!-- Victory Screen -->
     <div id="victory-screen" class="screen">
-        <h1 class="victory-text">LEVEL CLEARED</h1>
-        <p><span id="victory-details"></span><br>60 seconds</p>
+        <h1 class="victory-text">FULL FIGHT CLEARED</h1>
+        <p class="stats-text" id="victory-stats-mode">Full Fight, Difficulty</p>
+        <p>You survived all 3 Major Phases!</p>
+        <br>
         <button onclick="showScreen('menu-screen')">MAIN MENU</button>
     </div>
 
@@ -198,8 +200,7 @@
     let projectiles = [];
     let playerColor = '#00FFFF';
     let startTime;
-    let selectedMode = '';
-    let selectedDifficulty = '';
+    let currentDifficulty = '';
     
     // Input State
     const keys = {
@@ -233,16 +234,10 @@
         document.getElementById('current-color-text').style.color = color === '#000000' ? '#555' : color;
     }
 
-    function selectMode(mode) {
-        selectedMode = mode;
-        showScreen('difficulty-screen');
-    }
-
     // Controls
     window.addEventListener('keydown', (e) => {
         if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
         
-        // Teleport Mechanics
         if (e.key === ' ' && gameActive && player.dashCooldown <= 0) {
             let dx = 0; let dy = 0;
             if (keys.ArrowUp || keys.w) dy -= 1;
@@ -275,8 +270,9 @@
     function executeAttacks() {
         let t = frameCount;
 
-        if (t < 120) return; // Startup grace period
-
+        // ==========================================
+        // MAJOR PHASE 1 (Frames 120 - 1100)
+        // ==========================================
         if (t > 120 && t < 400 && t % 25 === 0) {
             let speed = 4;
             spawnProjectile(0, 0, speed, speed, 15);
@@ -285,50 +281,104 @@
             spawnProjectile(canvas.width, canvas.height, -speed, -speed, 15);
         }
 
-        if (t > 400 && t < 1000 && t % 5 === 0) {
+        if (t > 400 && t < 800 && t % 6 === 0) {
             let angle = t * 0.1;
-            let cx = canvas.width / 2;
-            let cy = canvas.height / 2;
-            spawnProjectile(cx, cy, Math.cos(angle)*6, Math.sin(angle)*6, 12);
-            spawnProjectile(cx, cy, Math.cos(angle + Math.PI)*6, Math.sin(angle + Math.PI)*6, 12);
+            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle)*6, Math.sin(angle)*6, 12);
+            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle + Math.PI)*6, Math.sin(angle + Math.PI)*6, 12);
         }
 
-        if (t > 600 && t % 150 === 0) {
+        if (t > 800 && t < 1100 && t % 100 === 0) {
             let gapY = Math.random() * (canvas.height - 200) + 100;
             for(let i=0; i<canvas.height; i+=40) {
                 if(Math.abs(i - gapY) > 90) spawnProjectile(canvas.width + 50, i, -8, 0, 20);
             }
         }
-        if (t > 800 && t % 180 === 0) {
-            let gapX = Math.random() * (canvas.width - 200) + 100;
-            for(let i=0; i<canvas.width; i+=40) {
-                if(Math.abs(i - gapX) > 90) spawnProjectile(i, -50, 0, 8, 20);
+
+        // ==========================================
+        // PHASE 1 TO PHASE 2 TRANSITION
+        // ==========================================
+        if (t === 1150) projectiles = []; // Clear Screen
+
+        // ==========================================
+        // MAJOR PHASE 2 (Frames 1300 - 2300)
+        // ==========================================
+        if (t > 1300 && t < 1650 && t % 12 === 0) {
+            // Asteroid Rain
+            let px = Math.random() * canvas.width;
+            spawnProjectile(px, -30, (Math.random()-0.5)*2, 5 + Math.random()*3, Math.random()*15 + 10);
+        }
+
+        if (t > 1650 && t < 2000 && t % 60 === 0) {
+            // Expanding Rings
+            let cx = Math.random() * canvas.width;
+            let cy = Math.random() * (canvas.height / 2);
+            for(let i = 0; i < Math.PI * 2; i += Math.PI / 5) {
+                spawnProjectile(cx, cy, Math.cos(i)*6, Math.sin(i)*6, 14);
             }
         }
 
-        if (t > 1000 && t % 90 === 0) {
+        if (t > 2000 && t < 2300 && t % 120 === 0) {
+            // Sweeping Vertical Walls
+            let gapY = Math.random() * (canvas.height - 200) + 100;
+            let dir = Math.random() > 0.5 ? 1 : -1;
+            let startX = dir === 1 ? -50 : canvas.width + 50;
+            for(let i=0; i<canvas.height; i+=35) {
+                if (Math.abs(i - gapY) > 80) {
+                    spawnProjectile(startX, i, dir * 7, 0, 18);
+                }
+            }
+        }
+
+        // ==========================================
+        // PHASE 2 TO PHASE 3 TRANSITION
+        // ==========================================
+        if (t === 2350) projectiles = []; // Clear Screen
+
+        // ==========================================
+        // MAJOR PHASE 3 (Frames 2500 - 3600)
+        // ==========================================
+        if (t > 2500 && t < 2900 && t % 45 === 0) {
+            // Targeted Bursts (Aims at player)
             let angle = Math.atan2(player.y - canvas.height/2, player.x - canvas.width/2);
-            for(let i = -2; i <= 2; i++) {
-                spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle + i*0.2)*10, Math.sin(angle + i*0.2)*10, 18);
-            }
+            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle)*8, Math.sin(angle)*8, 20);
+            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle+0.3)*8, Math.sin(angle+0.3)*8, 15);
+            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle-0.3)*8, Math.sin(angle-0.3)*8, 15);
         }
 
-        if (t > 1200 && t % 10 === 0) {
-            spawnProjectile(Math.random() * canvas.width, -30, (Math.random()-0.5)*2, 5 + Math.random()*5, Math.random()*15 + 10);
+        if (t > 2900 && t < 3300 && t % 8 === 0) {
+            // Chaotic Border Spawn
+            let edge = Math.floor(Math.random() * 4);
+            let px, py, vx, vy;
+            if(edge === 0) { px=Math.random()*canvas.width; py=-20; vx=(Math.random()-0.5)*4; vy=6; } 
+            if(edge === 1) { px=Math.random()*canvas.width; py=canvas.height+20; vx=(Math.random()-0.5)*4; vy=-6; } 
+            if(edge === 2) { px=-20; py=Math.random()*canvas.height; vx=6; vy=(Math.random()-0.5)*4; } 
+            if(edge === 3) { px=canvas.width+20; py=Math.random()*canvas.height; vx=-6; vy=(Math.random()-0.5)*4; } 
+            spawnProjectile(px, py, vx, vy, Math.random()*10 + 8);
+        }
+
+        if (t > 3300 && t < 3600 && t % 25 === 0) {
+            // Closing in on player heavily
+            let p1x = Math.random() * canvas.width; 
+            let p1y = -50;
+            let a1 = Math.atan2(player.y - p1y, player.x - p1x);
+            spawnProjectile(p1x, p1y, Math.cos(a1)*9, Math.sin(a1)*9, 16);
+            
+            let p2x = Math.random() * canvas.width; 
+            let p2y = canvas.height + 50;
+            let a2 = Math.atan2(player.y - p2y, player.x - p2x);
+            spawnProjectile(p2x, p2y, Math.cos(a2)*9, Math.sin(a2)*9, 16);
+        }
+
+        // ==========================================
+        // WIN CONDITION
+        // ==========================================
+        if (t === 3700) {
+            gameWon();
         }
     }
 
     function update() {
         if (!gameActive) return;
-
-        let timeSurvived = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById('timer-display').innerText = timeSurvived;
-
-        // Check Win Condition for 60 Seconds Mode
-        if (selectedMode === '60 Seconds' && timeSurvived >= 60) {
-            gameWon();
-            return;
-        }
 
         let dx = 0; let dy = 0;
         if (keys.ArrowUp || keys.w) dy -= 1;
@@ -369,7 +419,6 @@
                     
                     if (player.health <= 0) {
                         gameOver();
-                        return; // Stop updating after game over
                     } else {
                         player.isInvulnerable = 60; // 1 second of i-frames
                     }
@@ -380,6 +429,8 @@
         executeAttacks();
         frameCount++;
         
+        document.getElementById('timer-display').innerText = Math.floor((Date.now() - startTime) / 1000);
+        
         draw();
         animationId = requestAnimationFrame(update);
     }
@@ -388,6 +439,7 @@
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Player Rendering
         if (player.isInvulnerable > 0 && player.isInvulnerable < 120 && frameCount % 10 < 5) {
             ctx.globalAlpha = 0.2;
         } else if (player.isInvulnerable > 0) {
@@ -400,6 +452,7 @@
         ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
         ctx.globalAlpha = 1.0;
         
+        // Dash Cooldown indicator
         if (player.dashCooldown > 0) {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = 2;
@@ -408,6 +461,7 @@
             ctx.stroke();
         }
 
+        // Projectile Rendering
         ctx.fillStyle = '#00FF00';
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#00FF00';
@@ -416,16 +470,31 @@
         }
         ctx.shadowBlur = 0; 
         
+        // Phase Transitions & Warnings Text
         if (player.isInvulnerable > 0 && frameCount < 120) {
             ctx.fillStyle = `rgba(255, 255, 255, ${player.isInvulnerable / 120})`;
             ctx.font = '3rem Courier New';
             ctx.textAlign = 'center';
             ctx.fillText('GET READY!', canvas.width / 2, player.y - 50);
         }
+
+        if (frameCount > 1150 && frameCount < 1300) {
+            ctx.fillStyle = `rgba(255, 0, 255, ${(1300 - frameCount)/150})`;
+            ctx.font = '4rem Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText('PHASE 2', canvas.width / 2, canvas.height / 2);
+        }
+
+        if (frameCount > 2350 && frameCount < 2500) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${(2500 - frameCount)/150})`;
+            ctx.font = '4rem Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText('FINAL PHASE', canvas.width / 2, canvas.height / 2);
+        }
     }
 
-    function startGame(hp, diffName) {
-        selectedDifficulty = diffName;
+    function startGame(hp, difficultyName) {
+        currentDifficulty = difficultyName;
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         
         resize();
@@ -451,15 +520,17 @@
         gameActive = false;
         cancelAnimationFrame(animationId);
         let timeSurvived = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById('run-details').innerText = `${selectedMode}, ${selectedDifficulty}`;
+        
+        document.getElementById('death-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
         document.getElementById('survival-time').innerText = timeSurvived;
+        
         showScreen('game-over-screen');
     }
 
     function gameWon() {
         gameActive = false;
         cancelAnimationFrame(animationId);
-        document.getElementById('victory-details').innerText = `60 Seconds, ${selectedDifficulty}`;
+        document.getElementById('victory-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
         showScreen('victory-screen');
     }
 </script>
