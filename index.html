@@ -112,9 +112,20 @@
     <!-- Main Menu -->
     <div id="menu-screen" class="screen active">
         <h1>NEON EVASION</h1>
-        <button onclick="showScreen('difficulty-screen')">Start 2:30 Fight</button>
+        <button onclick="setupMode('full'); showScreen('difficulty-screen')">Start 2:30 Fight</button>
+        <button onclick="showScreen('practice-phase-screen')">Practice</button>
         <button onclick="showScreen('customize-screen')">Customize</button>
         <button onclick="showScreen('keybinds-screen')">Keybinds</button>
+    </div>
+
+    <!-- Practice Phase Selection Screen -->
+    <div id="practice-phase-screen" class="screen">
+        <h2>SELECT PHASE TO PRACTICE</h2>
+        <button onclick="setupMode('practice', 1); showScreen('difficulty-screen')">Phase 1</button>
+        <button onclick="setupMode('practice', 2); showScreen('difficulty-screen')">Phase 2</button>
+        <button onclick="setupMode('practice', 3); showScreen('difficulty-screen')">Phase 3</button>
+        <br>
+        <button onclick="showScreen('menu-screen')">Back</button>
     </div>
 
     <!-- Difficulty Screen -->
@@ -124,7 +135,7 @@
         <button onclick="startGame(3, 'Normal')">Normal (3 Hits)</button>
         <button onclick="startGame(1, 'Hardcore')">Hardcore (1 Hit)</button>
         <br>
-        <button onclick="showScreen('menu-screen')">Back</button>
+        <button onclick="goBackFromDifficulty()">Back</button>
     </div>
 
     <!-- Customize Screen -->
@@ -154,7 +165,7 @@
         <button onclick="showScreen('menu-screen')">Back</button>
     </div>
 
-    <!-- Game Over Screen -->
+    <!-- Game Over Screen (Full Run) -->
     <div id="game-over-screen" class="screen">
         <h1 class="danger-text">SYSTEM FAILURE</h1>
         <p class="stats-text" id="death-stats-mode">Full Fight, Difficulty</p>
@@ -163,18 +174,25 @@
         <button onclick="showScreen('menu-screen')">MAIN MENU</button>
     </div>
 
+    <!-- Practice Failed Screen -->
+    <div id="practice-failed-screen" class="screen">
+        <h1 class="danger-text">PRACTICE FAILED</h1>
+        <p class="stats-text" id="practice-failed-mode">Phase X, Difficulty</p>
+        <button onclick="retryPractice()">TRY AGAIN</button>
+        <button onclick="showScreen('menu-screen')">MAIN MENU</button>
+    </div>
+
     <!-- Victory Screen -->
     <div id="victory-screen" class="screen">
-        <h1 class="victory-text">FULL FIGHT CLEARED</h1>
-        <p class="stats-text" id="victory-stats-mode">Full Fight, Difficulty</p>
-        <p>You survived the ultimate challenge!</p>
+        <h1 class="victory-text" id="victory-title">FULL FIGHT CLEARED</h1>
+        <p class="stats-text" id="victory-stats-mode">Mode, Difficulty</p>
         <br>
         <button onclick="showScreen('menu-screen')">MAIN MENU</button>
     </div>
 
     <!-- Game Canvas -->
     <div id="hud">
-        <div>Time: <span id="timer-display">0</span> / 150</div>
+        <div>Time: <span id="timer-display">0</span> <span id="timer-max">/ 150</span></div>
         <div>HP: <span id="hp-display">6</span></div>
     </div>
     <canvas id="gameCanvas"></canvas>
@@ -193,6 +211,9 @@
     let playerColor = '#00FFFF';
     let startTime;
     let currentDifficulty = '';
+    let gameMode = 'full'; // 'full' or 'practice'
+    let selectedPracticePhase = 1;
+    let currentHpSetting = 6;
     
     // Input State
     const keys = {
@@ -234,6 +255,19 @@
         warnings.push({ x, y, vx, vy, size, timer: delayTimer, maxTimer: delayTimer });
     }
 
+    function setupMode(mode, phase = 1) {
+        gameMode = mode;
+        selectedPracticePhase = phase;
+    }
+
+    function goBackFromDifficulty() {
+        if (gameMode === 'practice') {
+            showScreen('practice-phase-screen');
+        } else {
+            showScreen('menu-screen');
+        }
+    }
+
     // Controls
     window.addEventListener('keydown', (e) => {
         if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
@@ -269,37 +303,57 @@
         // ==========================================
         // MAJOR PHASE 1 (0s to 40s)
         // ==========================================
-        // Minor Phase 1.1: Accelerated Corners (2s to 13s)
-        if (t > 120 && t < 800 && t % 15 === 0) {
-            let speed = 6;
-            spawnProjectile(0, 0, speed, speed, 15);
-            spawnProjectile(canvas.width, 0, -speed, speed, 15);
-            spawnProjectile(0, canvas.height, speed, -speed, 15);
-            spawnProjectile(canvas.width, canvas.height, -speed, -speed, 15);
-        }
-
-        // Minor Phase 1.2: 4-Arm Fast Spinner (13s to 26s)
-        if (t > 800 && t < 1600 && t % 4 === 0) {
-            let angle = t * 0.15;
-            let cx = canvas.width / 2; let cy = canvas.height / 2;
-            spawnProjectile(cx, cy, Math.cos(angle)*7, Math.sin(angle)*7, 12);
-            spawnProjectile(cx, cy, Math.cos(angle + Math.PI/2)*7, Math.sin(angle + Math.PI/2)*7, 12);
-            spawnProjectile(cx, cy, Math.cos(angle + Math.PI)*7, Math.sin(angle + Math.PI)*7, 12);
-            spawnProjectile(cx, cy, Math.cos(angle + Math.PI*1.5)*7, Math.sin(angle + Math.PI*1.5)*7, 12);
-        }
-
-        // Minor Phase 1.3: Tight Sweeping Gaps (26s to 40s)
-        if (t > 1600 && t < 2400) {
-            if (t % 80 === 0) {
-                let gapY = Math.random() * (canvas.height - 200) + 100;
-                for(let i = 0; i < canvas.height; i += 30) {
-                    if(Math.abs(i - gapY) > 40) spawnProjectile(canvas.width + 50, i, -12, 0, 20);
-                }
+        if (gameMode === 'full' || (gameMode === 'practice' && selectedPracticePhase === 1)) {
+            if (t > 120 && t < 800 && t % 15 === 0) {
+                let speed = 6;
+                spawnProjectile(0, 0, speed, speed, 15);
+                spawnProjectile(canvas.width, 0, -speed, speed, 15);
+                spawnProjectile(0, canvas.height, speed, -speed, 15);
+                spawnProjectile(canvas.width, canvas.height, -speed, -speed, 15);
             }
-            if (t % 110 === 0) {
-                let gapX = Math.random() * (canvas.width - 200) + 100;
-                for(let i = 0; i < canvas.width; i += 30) {
-                    if(Math.abs(i - gapX) > 40) spawnProjectile(i, -50, 0, 12, 20);
+
+            if (t > 800 && t < 1600 && t % 4 === 0) {
+                let angle = t * 0.15;
+                let cx = canvas.width / 2; let cy = canvas.height / 2;
+                spawnProjectile(cx, cy, Math.cos(angle)*7, Math.sin(angle)*7, 12);
+                spawnProjectile(cx, cy, Math.cos(angle + Math.PI/2)*7, Math.sin(angle + Math.PI/2)*7, 12);
+                spawnProjectile(cx, cy, Math.cos(angle + Math.PI)*7, Math.sin(angle + Math.PI)*7, 12);
+                spawnProjectile(cx, cy, Math.cos(angle + Math.PI*1.5)*7, Math.sin(angle + Math.PI*1.5)*7, 12);
+            }
+
+            // Updated Sweeping Gaps (1 or 2 holes)
+            if (t > 1600 && t < 2400) {
+                if (t % 80 === 0) {
+                    let numGaps = Math.random() > 0.5 ? 2 : 1;
+                    let gap1Y = Math.random() * (canvas.height - 150) + 75;
+                    let gap2Y = numGaps === 2 ? Math.random() * (canvas.height - 150) + 75 : -1000;
+                    
+                    if (numGaps === 2 && Math.abs(gap1Y - gap2Y) < 150) {
+                        gap2Y = (gap1Y + canvas.height/2) % canvas.height;
+                    }
+                    let gapSize = numGaps === 1 ? 35 : 45;
+
+                    for(let i = 0; i < canvas.height; i += 30) {
+                        if(Math.abs(i - gap1Y) > gapSize && Math.abs(i - gap2Y) > gapSize) {
+                            spawnProjectile(canvas.width + 50, i, -12, 0, 20);
+                        }
+                    }
+                }
+                if (t % 110 === 0) {
+                    let numGaps = Math.random() > 0.5 ? 2 : 1;
+                    let gap1X = Math.random() * (canvas.width - 150) + 75;
+                    let gap2X = numGaps === 2 ? Math.random() * (canvas.width - 150) + 75 : -1000;
+                    
+                    if (numGaps === 2 && Math.abs(gap1X - gap2X) < 150) {
+                        gap2X = (gap1X + canvas.width/2) % canvas.width;
+                    }
+                    let gapSize = numGaps === 1 ? 35 : 45;
+
+                    for(let i = 0; i < canvas.width; i += 30) {
+                        if(Math.abs(i - gap1X) > gapSize && Math.abs(i - gap2X) > gapSize) {
+                            spawnProjectile(i, -50, 0, 12, 20);
+                        }
+                    }
                 }
             }
         }
@@ -307,86 +361,97 @@
         // ==========================================
         // TRANSITION 1: THE CRUSH (40s to 45s)
         // ==========================================
-        if (t === 2400) { projectiles = []; warnings = []; } // Clear Screen
-        if (t === 2460 || t === 2470 || t === 2480) {
-            // Massive solid walls pushing in from left and right. MUST dash through.
-            for(let i = 0; i < canvas.height; i += 20) {
-                spawnProjectile(-50, i, 8, 0, 20);
-                spawnProjectile(canvas.width + 50, i, -8, 0, 20);
+        if (gameMode === 'full') {
+            if (t === 2400) { projectiles = []; warnings = []; }
+            if (t === 2460 || t === 2470 || t === 2480) {
+                for(let i = 0; i < canvas.height; i += 20) {
+                    spawnProjectile(-50, i, 8, 0, 20);
+                    spawnProjectile(canvas.width + 50, i, -8, 0, 20);
+                }
             }
+        }
+
+        // Win Practice Phase 1
+        if (gameMode === 'practice' && selectedPracticePhase === 1 && t === 2400) {
+            gameWon();
+            return;
         }
 
         // ==========================================
         // MAJOR PHASE 2 (45s to 90s)
         // ==========================================
-        // Minor Phase 2.1: Heavy Asteroid Rain (45s to 60s)
-        if (t > 2700 && t < 3600 && t % 5 === 0) {
-            let px = Math.random() * canvas.width;
-            spawnProjectile(px, -30, (Math.random()-0.5)*4, 8 + Math.random()*6, Math.random()*20 + 10);
-        }
+        if (gameMode === 'full' || (gameMode === 'practice' && selectedPracticePhase === 2)) {
+            if (t > 2700 && t < 3600 && t % 5 === 0) {
+                let px = Math.random() * canvas.width;
+                spawnProjectile(px, -30, (Math.random()-0.5)*4, 8 + Math.random()*6, Math.random()*20 + 10);
+            }
 
-        // Minor Phase 2.2: Dual Fireworks (60s to 75s)
-        if (t > 3600 && t < 4500 && t % 45 === 0) {
-            spawnWarning(Math.random() * (canvas.width - 100) + 50, Math.random() * (canvas.height - 100) + 50, 0, 0, 0, 45); 
-            spawnWarning(Math.random() * (canvas.width - 100) + 50, Math.random() * (canvas.height - 100) + 50, 0, 0, 0, 45); 
-        }
+            if (t > 3600 && t < 4500 && t % 45 === 0) {
+                spawnWarning(Math.random() * (canvas.width - 100) + 50, Math.random() * (canvas.height - 100) + 50, 0, 0, 0, 45); 
+                spawnWarning(Math.random() * (canvas.width - 100) + 50, Math.random() * (canvas.height - 100) + 50, 0, 0, 0, 45); 
+            }
 
-        // Minor Phase 2.3: Overlapping Expanding Rings (75s to 90s)
-        if (t > 4500 && t < 5400 && t % 40 === 0) {
-            spawnWarning(Math.random() * canvas.width, Math.random() * canvas.height, "ring", 0, 0, 30);
+            if (t > 4500 && t < 5400 && t % 40 === 0) {
+                spawnWarning(Math.random() * canvas.width, Math.random() * canvas.height, "ring", 0, 0, 30);
+            }
         }
 
         // ==========================================
         // TRANSITION 2: THE GRID (90s to 95s)
         // ==========================================
-        if (t === 5400) { projectiles = []; warnings = []; }
-        if (t === 5460) {
-            // Spawn warnings in a massive grid across the whole screen
-            for(let x = 100; x < canvas.width; x += 150) {
-                for(let y = 100; y < canvas.height; y += 150) {
-                    spawnWarning(x, y, "grid", 0, 0, 90); 
+        if (gameMode === 'full') {
+            if (t === 5400) { projectiles = []; warnings = []; }
+            if (t === 5460) {
+                for(let x = 100; x < canvas.width; x += 150) {
+                    for(let y = 100; y < canvas.height; y += 150) {
+                        spawnWarning(x, y, "grid", 0, 0, 90); 
+                    }
                 }
             }
+        }
+
+        // Win Practice Phase 2
+        if (gameMode === 'practice' && selectedPracticePhase === 2 && t === 5400) {
+            gameWon();
+            return;
         }
 
         // ==========================================
         // MAJOR PHASE 3 (95s to 150s)
         // ==========================================
-        // Minor Phase 3.1: Bullet Hell Border Spawn (95s to 113s)
-        if (t > 5700 && t < 6800 && t % 3 === 0) {
-            let edge = Math.floor(Math.random() * 4);
-            let px, py, vx, vy;
-            if(edge === 0) { px=Math.random()*canvas.width; py=-20; vx=(Math.random()-0.5)*6; vy=9; } 
-            if(edge === 1) { px=Math.random()*canvas.width; py=canvas.height+20; vx=(Math.random()-0.5)*6; vy=-9; } 
-            if(edge === 2) { px=-20; py=Math.random()*canvas.height; vx=9; vy=(Math.random()-0.5)*6; } 
-            if(edge === 3) { px=canvas.width+20; py=Math.random()*canvas.height; vx=-9; vy=(Math.random()-0.5)*6; } 
-            spawnProjectile(px, py, vx, vy, Math.random()*12 + 8);
-        }
+        if (gameMode === 'full' || (gameMode === 'practice' && selectedPracticePhase === 3)) {
+            if (t > 5700 && t < 6800 && t % 3 === 0) {
+                let edge = Math.floor(Math.random() * 4);
+                let px, py, vx, vy;
+                if(edge === 0) { px=Math.random()*canvas.width; py=-20; vx=(Math.random()-0.5)*6; vy=9; } 
+                if(edge === 1) { px=Math.random()*canvas.width; py=canvas.height+20; vx=(Math.random()-0.5)*6; vy=-9; } 
+                if(edge === 2) { px=-20; py=Math.random()*canvas.height; vx=9; vy=(Math.random()-0.5)*6; } 
+                if(edge === 3) { px=canvas.width+20; py=Math.random()*canvas.height; vx=-9; vy=(Math.random()-0.5)*6; } 
+                spawnProjectile(px, py, vx, vy, Math.random()*12 + 8);
+            }
 
-        // Minor Phase 3.2: Rapid Sweeping Rods/Walls (113s to 131s)
-        if (t > 6800 && t < 7900 && t % 40 === 0) {
-            let gapY = Math.random() * (canvas.height - 200) + 100;
-            let dir = Math.random() > 0.5 ? 1 : -1;
-            let startX = dir === 1 ? -50 : canvas.width + 50;
-            // Gap is tight (45), wall moves very fast
-            spawnWarning(startX === -50 ? 50 : canvas.width - 50, gapY, dir, "wall", gapY, 20);
-        }
+            if (t > 6800 && t < 7900 && t % 40 === 0) {
+                let gapY = Math.random() * (canvas.height - 200) + 100;
+                let dir = Math.random() > 0.5 ? 1 : -1;
+                let startX = dir === 1 ? -50 : canvas.width + 50;
+                spawnWarning(startX === -50 ? 50 : canvas.width - 50, gapY, dir, "wall", gapY, 20);
+            }
 
-        // Minor Phase 3.3: Relentless Player Tracking (131s to 150s)
-        if (t > 7900 && t < 9000 && t % 15 === 0) {
-            // Track the player super aggressively
-            spawnWarning(player.x, player.y, "track", 0, 0, 20);
-            
-            // Add background noise so they can't just stand still
-            if (t % 30 === 0) {
-                spawnProjectile(Math.random()*canvas.width, -20, 0, 10, 15);
+            if (t > 7900 && t < 9000 && t % 15 === 0) {
+                spawnWarning(player.x, player.y, "track", 0, 0, 20);
+                if (t % 30 === 0) {
+                    spawnProjectile(Math.random()*canvas.width, -20, 0, 10, 15);
+                }
             }
         }
 
         // ==========================================
-        // WIN CONDITION (150s / 2:30)
+        // WIN CONDITIONS
         // ==========================================
-        if (t === 9000) {
+        if (gameMode === 'full' && t === 9000) {
+            gameWon();
+        }
+        if (gameMode === 'practice' && selectedPracticePhase === 3 && t === 9000) {
             gameWon();
         }
     }
@@ -416,7 +481,6 @@
         if (player.dashCooldown > 0) player.dashCooldown--;
         if (player.isInvulnerable > 0) player.isInvulnerable--;
 
-        // Update Warnings
         for (let i = warnings.length - 1; i >= 0; i--) {
             let w = warnings[i];
             w.timer--;
@@ -477,7 +541,13 @@
         executeAttacks();
         frameCount++;
         
-        document.getElementById('timer-display').innerText = timeSurvived; 
+        // Timer display logic based on mode
+        let displayTime = timeSurvived;
+        if (gameMode === 'practice') {
+            let startOffset = selectedPracticePhase === 1 ? 0 : (selectedPracticePhase === 2 ? 45 : 95);
+            displayTime += startOffset;
+        }
+        document.getElementById('timer-display').innerText = displayTime; 
         
         draw();
         animationId = requestAnimationFrame(update);
@@ -518,7 +588,7 @@
         }
         ctx.shadowBlur = 0; 
         
-        // Warning Rendering (Exclamation Marks)
+        // Warning Rendering
         ctx.fillStyle = 'gray';
         ctx.font = 'bold 2.5rem Courier New';
         ctx.textAlign = 'center';
@@ -530,33 +600,38 @@
             ctx.globalAlpha = 1.0;
         }
 
-        // Phase Transitions Cinematic Text
+        // Cinematic Text
         ctx.textAlign = 'center';
-        if (player.isInvulnerable > 0 && frameCount < 120) {
+        let startFrame = gameMode === 'practice' ? (selectedPracticePhase === 2 ? 2700 : (selectedPracticePhase === 3 ? 5700 : 0)) : 0;
+        
+        if (player.isInvulnerable > 0 && frameCount < startFrame + 120) {
             ctx.fillStyle = `rgba(255, 255, 255, ${player.isInvulnerable / 120})`;
             ctx.font = '3rem Courier New';
-            ctx.fillText('GET READY!', canvas.width / 2, player.y - 60);
+            ctx.fillText(gameMode === 'practice' ? `PHASE ${selectedPracticePhase} PRACTICE` : 'GET READY!', canvas.width / 2, player.y - 60);
         }
 
-        if (frameCount >= 2400 && frameCount < 2520) {
-            ctx.fillStyle = `rgba(255, 50, 50, ${(2520 - frameCount)/100})`;
-            ctx.font = 'bold 5rem Courier New';
-            ctx.fillText('THE CRUSH', canvas.width / 2, canvas.height / 2);
-            ctx.font = '2rem Courier New';
-            ctx.fillText('DASH THROUGH!', canvas.width / 2, canvas.height / 2 + 60);
-        }
+        if (gameMode === 'full') {
+            if (frameCount >= 2400 && frameCount < 2520) {
+                ctx.fillStyle = `rgba(255, 50, 50, ${(2520 - frameCount)/100})`;
+                ctx.font = 'bold 5rem Courier New';
+                ctx.fillText('THE CRUSH', canvas.width / 2, canvas.height / 2);
+                ctx.font = '2rem Courier New';
+                ctx.fillText('DASH THROUGH!', canvas.width / 2, canvas.height / 2 + 60);
+            }
 
-        if (frameCount >= 5400 && frameCount < 5520) {
-            ctx.fillStyle = `rgba(255, 255, 0, ${(5520 - frameCount)/100})`;
-            ctx.font = 'bold 5rem Courier New';
-            ctx.fillText('THE GRID', canvas.width / 2, canvas.height / 2);
-            ctx.font = '2rem Courier New';
-            ctx.fillText('FIND THE SAFE ZONE', canvas.width / 2, canvas.height / 2 + 60);
+            if (frameCount >= 5400 && frameCount < 5520) {
+                ctx.fillStyle = `rgba(255, 255, 0, ${(5520 - frameCount)/100})`;
+                ctx.font = 'bold 5rem Courier New';
+                ctx.fillText('THE GRID', canvas.width / 2, canvas.height / 2);
+                ctx.font = '2rem Courier New';
+                ctx.fillText('FIND THE SAFE ZONE', canvas.width / 2, canvas.height / 2 + 60);
+            }
         }
     }
 
     function startGame(hp, difficultyName) {
         currentDifficulty = difficultyName;
+        currentHpSetting = hp;
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         
         resize();
@@ -570,30 +645,54 @@
         
         projectiles = [];
         warnings = []; 
-        frameCount = 0;
         gameActive = true;
         startTime = Date.now();
-        
         player.isInvulnerable = 120; 
+
+        if (gameMode === 'full') {
+            frameCount = 0;
+            document.getElementById('timer-max').innerText = '/ 150';
+        } else {
+            // Start at correct frame for practice mode
+            if (selectedPracticePhase === 1) { frameCount = 0; document.getElementById('timer-max').innerText = '/ 40'; }
+            if (selectedPracticePhase === 2) { frameCount = 2700; document.getElementById('timer-max').innerText = '/ 90'; }
+            if (selectedPracticePhase === 3) { frameCount = 5700; document.getElementById('timer-max').innerText = '/ 150'; }
+        }
         
         update();
+    }
+
+    function retryPractice() {
+        startGame(currentHpSetting, currentDifficulty);
     }
 
     function gameOver() {
         gameActive = false;
         cancelAnimationFrame(animationId);
-        let timeSurvived = Math.floor((Date.now() - startTime) / 1000);
         
-        document.getElementById('death-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
-        document.getElementById('survival-time').innerText = timeSurvived;
-        
-        showScreen('game-over-screen');
+        if (gameMode === 'practice') {
+            document.getElementById('practice-failed-mode').innerText = `Phase ${selectedPracticePhase}, ${currentDifficulty}`;
+            showScreen('practice-failed-screen');
+        } else {
+            let timeSurvived = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('death-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
+            document.getElementById('survival-time').innerText = timeSurvived;
+            showScreen('game-over-screen');
+        }
     }
 
     function gameWon() {
         gameActive = false;
         cancelAnimationFrame(animationId);
-        document.getElementById('victory-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
+        
+        if (gameMode === 'practice') {
+            document.getElementById('victory-title').innerText = "PHASE CLEARED";
+            document.getElementById('victory-stats-mode').innerText = `Phase ${selectedPracticePhase} Practice, ${currentDifficulty}`;
+        } else {
+            document.getElementById('victory-title').innerText = "FULL FIGHT CLEARED";
+            document.getElementById('victory-stats-mode').innerText = `Full Fight, ${currentDifficulty}`;
+        }
+        
         showScreen('victory-screen');
     }
 </script>
