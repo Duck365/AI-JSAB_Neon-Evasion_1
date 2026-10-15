@@ -198,6 +198,7 @@
     let gameActive = false;
     let frameCount = 0;
     let projectiles = [];
+    let warnings = [];
     let playerColor = '#00FFFF';
     let startTime;
     let currentDifficulty = '';
@@ -234,6 +235,14 @@
         document.getElementById('current-color-text').style.color = color === '#000000' ? '#555' : color;
     }
 
+    function spawnProjectile(x, y, vx, vy, size) {
+        projectiles.push({ x, y, vx, vy, size });
+    }
+
+    function spawnWarning(x, y, vx, vy, size, delayTimer) {
+        warnings.push({ x, y, vx, vy, size, timer: delayTimer, maxTimer: delayTimer });
+    }
+
     // Controls
     window.addEventListener('keydown', (e) => {
         if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
@@ -263,17 +272,14 @@
         if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
     });
 
-    function spawnProjectile(x, y, vx, vy, size) {
-        projectiles.push({ x, y, vx, vy, size });
-    }
-
     function executeAttacks() {
         let t = frameCount;
 
         // ==========================================
-        // MAJOR PHASE 1 (Frames 120 - 1100)
+        // MAJOR PHASE 1 (0s to 32s)
         // ==========================================
-        if (t > 120 && t < 400 && t % 25 === 0) {
+        // Minor Phase 1.1: Diagonal Corners (2s to 10s)
+        if (t > 120 && t < 600 && t % 25 === 0) {
             let speed = 4;
             spawnProjectile(0, 0, speed, speed, 15);
             spawnProjectile(canvas.width, 0, -speed, speed, 15);
@@ -281,72 +287,68 @@
             spawnProjectile(canvas.width, canvas.height, -speed, -speed, 15);
         }
 
-        if (t > 400 && t < 800 && t % 6 === 0) {
+        // Minor Phase 1.2: Center Spinner (10s to 20s)
+        if (t > 600 && t < 1200 && t % 6 === 0) {
             let angle = t * 0.1;
             spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle)*6, Math.sin(angle)*6, 12);
             spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle + Math.PI)*6, Math.sin(angle + Math.PI)*6, 12);
         }
 
-        if (t > 800 && t < 1100 && t % 100 === 0) {
-            let gapY = Math.random() * (canvas.height - 200) + 100;
-            for(let i=0; i<canvas.height; i+=40) {
-                if(Math.abs(i - gapY) > 90) spawnProjectile(canvas.width + 50, i, -8, 0, 20);
+        // Minor Phase 1.3: Sweeping Gaps (20s to 32s)
+        if (t > 1200 && t < 1920) {
+            if (t % 120 === 0) {
+                let gapY = Math.random() * (canvas.height - 200) + 100;
+                for(let i=0; i<canvas.height; i+=40) {
+                    if(Math.abs(i - gapY) > 90) spawnProjectile(canvas.width + 50, i, -8, 0, 20);
+                }
             }
-        }
-
-        // ==========================================
-        // PHASE 1 TO PHASE 2 TRANSITION
-        // ==========================================
-        if (t === 1150) projectiles = []; // Clear Screen
-
-        // ==========================================
-        // MAJOR PHASE 2 (Frames 1300 - 2300)
-        // ==========================================
-        if (t > 1300 && t < 1650 && t % 12 === 0) {
-            // Asteroid Rain
-            let px = Math.random() * canvas.width;
-            spawnProjectile(px, -30, (Math.random()-0.5)*2, 5 + Math.random()*3, Math.random()*15 + 10);
-        }
-
-        if (t > 1650 && t < 2000 && t % 60 === 0) {
-            // Expanding Rings
-            let cx = Math.random() * canvas.width;
-            let cy = Math.random() * (canvas.height / 2);
-            for(let i = 0; i < Math.PI * 2; i += Math.PI / 5) {
-                spawnProjectile(cx, cy, Math.cos(i)*6, Math.sin(i)*6, 14);
-            }
-        }
-
-        if (t > 2000 && t < 2300 && t % 120 === 0) {
-            // Sweeping Vertical Walls
-            let gapY = Math.random() * (canvas.height - 200) + 100;
-            let dir = Math.random() > 0.5 ? 1 : -1;
-            let startX = dir === 1 ? -50 : canvas.width + 50;
-            for(let i=0; i<canvas.height; i+=35) {
-                if (Math.abs(i - gapY) > 80) {
-                    spawnProjectile(startX, i, dir * 7, 0, 18);
+            if (t % 150 === 0) {
+                let gapX = Math.random() * (canvas.width - 200) + 100;
+                for(let i=0; i<canvas.width; i+=40) {
+                    if(Math.abs(i - gapX) > 90) spawnProjectile(i, -50, 0, 8, 20);
                 }
             }
         }
 
         // ==========================================
-        // PHASE 2 TO PHASE 3 TRANSITION
+        // PHASE 1 TO PHASE 2 TRANSITION (32s to 38s)
         // ==========================================
-        if (t === 2350) projectiles = []; // Clear Screen
+        if (t === 1920) { projectiles = []; warnings = []; } // Clear Screen
 
         // ==========================================
-        // MAJOR PHASE 3 (Frames 2500 - 3600)
+        // MAJOR PHASE 2 (38s to 70s)
         // ==========================================
-        if (t > 2500 && t < 2900 && t % 45 === 0) {
-            // Targeted Bursts (Aims at player)
-            let angle = Math.atan2(player.y - canvas.height/2, player.x - canvas.width/2);
-            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle)*8, Math.sin(angle)*8, 20);
-            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle+0.3)*8, Math.sin(angle+0.3)*8, 15);
-            spawnProjectile(canvas.width/2, canvas.height/2, Math.cos(angle-0.3)*8, Math.sin(angle-0.3)*8, 15);
+        // Minor Phase 2.1: Asteroid Rain (38s to 48s)
+        if (t > 2280 && t < 2880 && t % 10 === 0) {
+            let px = Math.random() * canvas.width;
+            spawnProjectile(px, -30, (Math.random()-0.5)*2, 5 + Math.random()*3, Math.random()*15 + 10);
         }
 
-        if (t > 2900 && t < 3300 && t % 8 === 0) {
-            // Chaotic Border Spawn
+        // Minor Phase 2.2: Fireworks with Warnings! (48s to 58s)
+        if (t > 2880 && t < 3480 && t % 90 === 0) {
+            let wx = Math.random() * (canvas.width - 100) + 50;
+            let wy = Math.random() * (canvas.height - 100) + 50;
+            // Spawn a warning that lasts 60 frames (1 second) before erupting
+            spawnWarning(wx, wy, 0, 0, 0, 60); 
+        }
+
+        // Minor Phase 2.3: Expanding Rings (58s to 70s)
+        if (t > 3480 && t < 4200 && t % 75 === 0) {
+            let cx = Math.random() * canvas.width;
+            let cy = Math.random() * canvas.height;
+            spawnWarning(cx, cy, "ring", 0, 0, 45); // Special warning type for rings
+        }
+
+        // ==========================================
+        // PHASE 2 TO PHASE 3 TRANSITION (70s to 76s)
+        // ==========================================
+        if (t === 4200) { projectiles = []; warnings = []; }
+
+        // ==========================================
+        // MAJOR PHASE 3 (76s to 106s)
+        // ==========================================
+        // Minor Phase 3.1: Chaotic Border Spawn (76s to 86s)
+        if (t > 4560 && t < 5160 && t % 6 === 0) {
             let edge = Math.floor(Math.random() * 4);
             let px, py, vx, vy;
             if(edge === 0) { px=Math.random()*canvas.width; py=-20; vx=(Math.random()-0.5)*4; vy=6; } 
@@ -356,29 +358,32 @@
             spawnProjectile(px, py, vx, vy, Math.random()*10 + 8);
         }
 
-        if (t > 3300 && t < 3600 && t % 25 === 0) {
-            // Closing in on player heavily
-            let p1x = Math.random() * canvas.width; 
-            let p1y = -50;
-            let a1 = Math.atan2(player.y - p1y, player.x - p1x);
-            spawnProjectile(p1x, p1y, Math.cos(a1)*9, Math.sin(a1)*9, 16);
-            
-            let p2x = Math.random() * canvas.width; 
-            let p2y = canvas.height + 50;
-            let a2 = Math.atan2(player.y - p2y, player.x - p2x);
-            spawnProjectile(p2x, p2y, Math.cos(a2)*9, Math.sin(a2)*9, 16);
+        // Minor Phase 3.2: Sweeping Vertical Walls (86s to 96s)
+        if (t > 5160 && t < 5760 && t % 90 === 0) {
+            let gapY = Math.random() * (canvas.height - 200) + 100;
+            let dir = Math.random() > 0.5 ? 1 : -1;
+            let startX = dir === 1 ? -50 : canvas.width + 50;
+            // Spawn warning lines before the wall comes
+            spawnWarning(startX === -50 ? 50 : canvas.width - 50, gapY, dir, "wall", gapY, 40);
+        }
+
+        // Minor Phase 3.3: Heavy Player Tracking with Warnings (96s to 106s)
+        if (t > 5760 && t < 6360 && t % 40 === 0) {
+            spawnWarning(player.x, player.y, "track", 0, 0, 30);
         }
 
         // ==========================================
-        // WIN CONDITION
+        // WIN CONDITION (110s)
         // ==========================================
-        if (t === 3700) {
+        if (t === 6600) {
             gameWon();
         }
     }
 
     function update() {
         if (!gameActive) return;
+
+        let timeSurvived = Math.floor((Date.now() - startTime) / 1000);
 
         let dx = 0; let dy = 0;
         if (keys.ArrowUp || keys.w) dy -= 1;
@@ -400,6 +405,36 @@
         if (player.dashCooldown > 0) player.dashCooldown--;
         if (player.isInvulnerable > 0) player.isInvulnerable--;
 
+        // Update Warnings
+        for (let i = warnings.length - 1; i >= 0; i--) {
+            let w = warnings[i];
+            w.timer--;
+            
+            if (w.timer <= 0) {
+                // Fire off the attack based on warning type
+                if (w.vx === "ring") {
+                    for(let j = 0; j < Math.PI * 2; j += Math.PI / 6) {
+                        spawnProjectile(w.x, w.y, Math.cos(j)*7, Math.sin(j)*7, 14);
+                    }
+                } else if (w.vx === "track") {
+                    let angle = Math.atan2(player.y - w.y, player.x - w.x);
+                    spawnProjectile(w.x, w.y, Math.cos(angle)*12, Math.sin(angle)*12, 18);
+                } else if (w.vy === "wall") {
+                    for(let j=0; j<canvas.height; j+=35) {
+                        if (Math.abs(j - w.size) > 80) { // w.size holds the gapY here
+                            spawnProjectile(w.vx === 1 ? -50 : canvas.width + 50, j, w.vx * 9, 0, 18);
+                        }
+                    }
+                } else {
+                    // Standard Firework Burst
+                    for(let j = 0; j < Math.PI * 2; j += Math.PI / 4) {
+                        spawnProjectile(w.x, w.y, Math.cos(j)*5, Math.sin(j)*5, 12);
+                    }
+                }
+                warnings.splice(i, 1);
+            }
+        }
+
         for (let i = projectiles.length - 1; i >= 0; i--) {
             let p = projectiles[i];
             p.x += p.vx;
@@ -420,7 +455,7 @@
                     if (player.health <= 0) {
                         gameOver();
                     } else {
-                        player.isInvulnerable = 60; // 1 second of i-frames
+                        player.isInvulnerable = 60; 
                     }
                 }
             }
@@ -429,7 +464,7 @@
         executeAttacks();
         frameCount++;
         
-        document.getElementById('timer-display').innerText = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('timer-display').innerText = timeSurvived; 
         
         draw();
         animationId = requestAnimationFrame(update);
@@ -470,25 +505,36 @@
         }
         ctx.shadowBlur = 0; 
         
+        // Warning Rendering (Exclamation Marks)
+        ctx.fillStyle = 'gray';
+        ctx.font = 'bold 2rem Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let w of warnings) {
+            // Flash the warning rapidly right before it erupts
+            if (w.timer < 15 && frameCount % 4 < 2) continue; 
+            
+            ctx.globalAlpha = 1 - (w.timer / w.maxTimer); // Fades in
+            ctx.fillText('!', w.x, w.y);
+            ctx.globalAlpha = 1.0;
+        }
+
         // Phase Transitions & Warnings Text
         if (player.isInvulnerable > 0 && frameCount < 120) {
             ctx.fillStyle = `rgba(255, 255, 255, ${player.isInvulnerable / 120})`;
             ctx.font = '3rem Courier New';
-            ctx.textAlign = 'center';
             ctx.fillText('GET READY!', canvas.width / 2, player.y - 50);
         }
 
-        if (frameCount > 1150 && frameCount < 1300) {
-            ctx.fillStyle = `rgba(255, 0, 255, ${(1300 - frameCount)/150})`;
+        if (frameCount > 1920 && frameCount < 2100) {
+            ctx.fillStyle = `rgba(255, 0, 255, ${(2100 - frameCount)/150})`;
             ctx.font = '4rem Courier New';
-            ctx.textAlign = 'center';
             ctx.fillText('PHASE 2', canvas.width / 2, canvas.height / 2);
         }
 
-        if (frameCount > 2350 && frameCount < 2500) {
-            ctx.fillStyle = `rgba(255, 0, 0, ${(2500 - frameCount)/150})`;
+        if (frameCount > 4200 && frameCount < 4380) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${(4380 - frameCount)/150})`;
             ctx.font = '4rem Courier New';
-            ctx.textAlign = 'center';
             ctx.fillText('FINAL PHASE', canvas.width / 2, canvas.height / 2);
         }
     }
@@ -507,6 +553,7 @@
         document.getElementById('hp-display').innerText = player.health;
         
         projectiles = [];
+        warnings = []; // Clear warnings on restart
         frameCount = 0;
         gameActive = true;
         startTime = Date.now();
