@@ -307,17 +307,17 @@
             }
 
             if (t > 1600 && t < 2400) {
-                // Horizontal sweeps (Left to Right or Right to Left) - 1 Hole
+                // Horizontal sweeps (Left to Right or Right to Left) - 1 Hole (SLOWER)
                 if (t % 80 === 0) {
                     let dir = Math.random() > 0.5 ? 1 : -1;
                     let startX = dir === 1 ? -50 : canvas.width + 50;
                     let gapY = Math.random() * (canvas.height - 150) + 75;
                     
                     for(let i = 0; i < canvas.height; i += 30) {
-                        if(Math.abs(i - gapY) > 40) spawnProjectile(startX, i, dir * 12, 0, 20);
+                        if(Math.abs(i - gapY) > 40) spawnProjectile(startX, i, dir * 8.5, 0, 20);
                     }
                 }
-                // Vertical sweeps (Top to Bottom or Bottom to Top) - 2 Holes
+                // Vertical sweeps (Top to Bottom or Bottom to Top) - 2 Holes (SLOWER)
                 if (t % 110 === 0) {
                     let dir = Math.random() > 0.5 ? 1 : -1;
                     let startY = dir === 1 ? -50 : canvas.height + 50;
@@ -327,7 +327,7 @@
 
                     for(let i = 0; i < canvas.width; i += 30) {
                         if(Math.abs(i - gap1X) > 40 && Math.abs(i - gap2X) > 40) {
-                            spawnProjectile(i, startY, 0, dir * 12, 20);
+                            spawnProjectile(i, startY, 0, dir * 8.5, 20);
                         }
                     }
                 }
@@ -385,14 +385,15 @@
         // MAJOR PHASE 3 (95s to 150s)
         if (gameMode === 'full' || (gameMode === 'practice' && selectedPracticePhase === 3)) {
             
-            // Phase 3.1 Undertale-Style Caution Lines
-            if (t > 5700 && t < 6800 && t % 15 === 0) {
-                let isVert = Math.random() > 0.5;
-                if (isVert) {
-                    spawnWarning(Math.random() * canvas.width, canvas.height/2, "caution_vert", 0, 0, 30);
-                } else {
-                    spawnWarning(canvas.width/2, Math.random() * canvas.height, "caution_horiz", 0, 0, 30);
-                }
+            // Phase 3.1 Shower from all sides (Reverted but minimized)
+            if (t > 5700 && t < 6800 && t % 7 === 0) {
+                let edge = Math.floor(Math.random() * 4);
+                let px, py, vx, vy;
+                if(edge === 0) { px=Math.random()*canvas.width; py=-20; vx=(Math.random()-0.5)*6; vy=8; } 
+                if(edge === 1) { px=Math.random()*canvas.width; py=canvas.height+20; vx=(Math.random()-0.5)*6; vy=-8; } 
+                if(edge === 2) { px=-20; py=Math.random()*canvas.height; vx=8; vy=(Math.random()-0.5)*6; } 
+                if(edge === 3) { px=canvas.width+20; py=Math.random()*canvas.height; vx=-8; vy=(Math.random()-0.5)*6; } 
+                spawnProjectile(px, py, vx, vy, Math.random()*12 + 8);
             }
 
             // Phase 3.2 Setup: Center Static Divider
@@ -473,16 +474,6 @@
                             spawnProjectile(w.vx === 1 ? -50 : canvas.width + 50, j, w.vx * 14, 0, 20);
                         }
                     }
-                } else if (w.vx === "caution_vert") {
-                    for(let j=0; j<canvas.height; j+=35) spawnProjectile(w.x, j, 0, 0, 35); // Beam effect
-                    setTimeout(() => { // Clear beam fast
-                        projectiles = projectiles.filter(p => p.x !== w.x);
-                    }, 200);
-                } else if (w.vx === "caution_horiz") {
-                    for(let j=0; j<canvas.width; j+=35) spawnProjectile(j, w.y, 0, 0, 35);
-                    setTimeout(() => { 
-                        projectiles = projectiles.filter(p => p.y !== w.y);
-                    }, 200);
                 } else if (w.vx === "grid") {
                     for(let j = 0; j < Math.PI * 2; j += Math.PI / 4) {
                         spawnProjectile(w.x, w.y, Math.cos(j)*10, Math.sin(j)*10, 15);
@@ -568,28 +559,16 @@
         }
         ctx.shadowBlur = 0; 
         
-        // Warning Rendering (Includes new Caution Lines)
+        // Warning Rendering
         ctx.fillStyle = 'gray';
         ctx.font = 'bold 2.5rem Courier New';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (let w of warnings) {
-            if (w.vx === "caution_vert") {
-                ctx.fillStyle = (frameCount % 6 < 3) ? '#888' : '#444';
-                ctx.globalAlpha = 0.5;
-                ctx.fillRect(w.x - 17, 0, 34, canvas.height);
-                ctx.globalAlpha = 1.0;
-            } else if (w.vx === "caution_horiz") {
-                ctx.fillStyle = (frameCount % 6 < 3) ? '#888' : '#444';
-                ctx.globalAlpha = 0.5;
-                ctx.fillRect(0, w.y - 17, canvas.width, 34);
-                ctx.globalAlpha = 1.0;
-            } else {
-                if (w.timer < 15 && frameCount % 4 < 2) continue; 
-                ctx.globalAlpha = 1 - (w.timer / w.maxTimer); 
-                ctx.fillText('!', w.x, w.y);
-                ctx.globalAlpha = 1.0;
-            }
+            if (w.timer < 15 && frameCount % 4 < 2) continue; 
+            ctx.globalAlpha = 1 - (w.timer / w.maxTimer); 
+            ctx.fillText('!', w.x, w.y);
+            ctx.globalAlpha = 1.0;
         }
 
         ctx.textAlign = 'center';
