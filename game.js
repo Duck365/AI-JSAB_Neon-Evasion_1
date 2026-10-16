@@ -11,7 +11,7 @@ let startTime;
 let currentDifficulty = '';
 let gameMode = 'full'; 
 let selectedPracticePhase = '1';
-let currentHpSetting = 6;
+let currentHpSetting = 5;
 let hitsTaken = 0;
 
 const keys = {
@@ -20,7 +20,7 @@ const keys = {
 };
 
 const player = {
-    x: 0, y: 0, size: 20, speed: 6.5, health: 6,
+    x: 0, y: 0, size: 20, speed: 6.5, health: 5,
     dashCooldown: 0, maxDashCooldown: 40, dashDistance: 180, isInvulnerable: 0
 };
 
@@ -164,7 +164,7 @@ function executePhase2(t) {
 
     // 2.3: Expanding Rings (75s - 90s)
     if (t > 4500 && t < 5400 && t % 40 === 0) {
-        spawnWarning(Math.random() * canvas.width, Math.random() * canvas.height, "ring", 0, 0, 30);
+        spawnWarning(Math.random() * canvas.width, Math.random() * canvas.height, "ring", 0, 40, 30);
     }
 }
 
@@ -196,10 +196,10 @@ function executePhase3(t) {
     
     if (t === 7900) { projectiles = []; warnings = []; }
 
-    // 3.3: Player Tracking (131s - 150s)
-    if (t > 7900 && t < 9000 && t % 15 === 0) {
-        spawnWarning(player.x, player.y, "track", 0, 0, 20);
-        if (t % 30 === 0) {
+    // 3.3: Player Tracking (132s - 150s) - Added 1 second delay (7960) before spawning starts
+    if (t > 7960 && t < 9000 && t % 20 === 0) {
+        spawnWarning(player.x, player.y, "track", 0, 0, 30); // 30 frames warning before shooting
+        if (t % 40 === 0) {
             spawnProjectile(Math.random()*canvas.width, -20, 0, 10, 15);
         }
     }
@@ -225,7 +225,6 @@ function executeAttacks() {
             }
         }
     }
-    if (gameMode === 'practice' && majorPhase === '1' && t === 2400) { gameWon(); return; }
 
     // Phase 2 execution
     if (gameMode === 'full' || (gameMode === 'practice' && majorPhase === '2')) {
@@ -236,7 +235,6 @@ function executeAttacks() {
     if (gameMode === 'full') {
         if (t === 5400) { projectiles = []; warnings = []; }
         if (t === 5460) {
-            // Spawn grid warnings across the arena
             for(let x = 100; x < canvas.width; x += 150) {
                 for(let y = 100; y < canvas.height; y += 150) {
                     spawnWarning(x, y, "grid", 0, 0, 90); 
@@ -244,16 +242,32 @@ function executeAttacks() {
             }
         }
     }
-    if (gameMode === 'practice' && majorPhase === '2' && t === 5400) { gameWon(); return; }
 
     // Phase 3 execution
     if (gameMode === 'full' || (gameMode === 'practice' && majorPhase === '3')) {
         executePhase3(t);
     }
 
-    // Victory check
+    // Sub-Phase Practice Victory Checks
+    if (gameMode === 'practice') {
+        if (selectedPracticePhase === '1.1' && t === 800) gameWon();
+        if (selectedPracticePhase === '1.2' && t === 1600) gameWon();
+        if (selectedPracticePhase === '1.3' && t === 2400) gameWon();
+        if (selectedPracticePhase === '1' && t === 2400) gameWon();
+
+        if (selectedPracticePhase === '2.1' && t === 3600) gameWon();
+        if (selectedPracticePhase === '2.2' && t === 4500) gameWon();
+        if (selectedPracticePhase === '2.3' && t === 5400) gameWon();
+        if (selectedPracticePhase === '2' && t === 5400) gameWon();
+
+        if (selectedPracticePhase === '3.1' && t === 6800) gameWon();
+        if (selectedPracticePhase === '3.2' && t === 7900) gameWon();
+        if (selectedPracticePhase === '3.3' && t === 9000) gameWon();
+        if (selectedPracticePhase === '3' && t === 9000) gameWon();
+    }
+
+    // Full Game Victory check
     if (gameMode === 'full' && t === 9000) gameWon();
-    if (gameMode === 'practice' && majorPhase === '3' && t === 9000) gameWon();
 }
 
 function update() {
@@ -306,7 +320,6 @@ function update() {
                     spawnProjectile(w.x, w.y, Math.cos(j)*10, Math.sin(j)*10, 15);
                 }
             } else {
-                // Firecracker burst
                 for(let j = 0; j < Math.PI * 2; j += Math.PI / 6) {
                     spawnProjectile(w.x, w.y, Math.cos(j)*8, Math.sin(j)*8, 12);
                 }
@@ -403,38 +416,31 @@ function draw() {
     for (let w of warnings) {
         let progress = 1 - (w.timer / w.maxTimer);
 
-        // 1. GRID TRANSITION FLASH PREVIEW (Flashes white zones before bullets erupt)
         if (w.vx === "grid") {
             ctx.fillStyle = (frameCount % 6 < 3) ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.2)';
             ctx.beginPath();
             ctx.arc(w.x, w.y, 50 * progress, 0, Math.PI * 2);
             ctx.fill();
 
-            // White exclamation mark
             ctx.fillStyle = 'white';
             ctx.font = 'bold 2.5rem Courier New';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('!', w.x, w.y);
         }
-        // 2. FIRECRACKER CIRCLE INDICATOR (JSAB style center target & expanding ring)
         else if (w.vx === "firecracker") {
             let radius = w.size || 40;
-            
-            // Pulsing target circle
             ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 + 0.6 * progress})`;
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(w.x, w.y, radius, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Inner expanding fill circle
             ctx.fillStyle = `rgba(255, 255, 255, ${0.2 * progress})`;
             ctx.beginPath();
             ctx.arc(w.x, w.y, radius * progress, 0, Math.PI * 2);
             ctx.fill();
 
-            // White exclamation mark in the center
             if (w.timer >= 15 || frameCount % 4 >= 2) {
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 2rem Courier New';
@@ -443,7 +449,57 @@ function draw() {
                 ctx.fillText('!', w.x, w.y);
             }
         }
-        // 3. STANDARD WHITE EXCLAMATION MARK INDICATORS
+        else if (w.vx === "ring") {
+            let radius = w.size || 40;
+            ctx.strokeStyle = `rgba(255, 0, 0, ${0.4 + 0.6 * progress})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = `rgba(255, 0, 0, ${0.2 * progress})`;
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, radius * progress, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (w.timer >= 15 || frameCount % 4 >= 2) {
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 2rem Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('!', w.x, w.y);
+            }
+        }
+        else if (w.vx === "track") {
+            let angle = Math.atan2(player.y - w.y, player.x - w.x);
+            let triSize = 30;
+
+            ctx.save();
+            ctx.translate(w.x, w.y);
+            ctx.rotate(angle);
+
+            ctx.strokeStyle = `rgba(255, 255, 0, ${0.5 + 0.5 * progress})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(triSize, 0); 
+            ctx.lineTo(-triSize/2, triSize/2);
+            ctx.lineTo(-triSize/2, -triSize/2);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.fillStyle = `rgba(255, 255, 0, ${0.2 * progress})`;
+            ctx.fill();
+
+            ctx.rotate(-angle);
+            if (w.timer >= 15 || frameCount % 4 >= 2) {
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 1.5rem Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('!', 0, 0);
+            }
+            ctx.restore();
+        }
         else {
             if (w.timer < 15 && frameCount % 4 < 2) continue; 
             ctx.fillStyle = 'white';
