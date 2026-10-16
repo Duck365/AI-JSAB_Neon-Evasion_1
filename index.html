@@ -52,7 +52,19 @@
         <button onclick="startGame(5, 'Normal')">Normal (5 Hits)</button>
         <button onclick="startGame(1, 'Hardcore')">Hardcore (1 Hit)</button>
         <button onclick="startGame('Debug', 'Debug')">Debug (Invincible)</button>
-        <br>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="toggleCustomHp()">Set HP</button>
+            <div id="custom-hp-container" style="display: none; margin-top: 15px;">
+                <div class="custom-hp-row">
+                    Enter the amount of HP you want: 
+                    <input type="number" id="custom-hp-input" min="1" step="1" oninput="handleCustomHpInput()">
+                </div>
+                <button id="custom-hp-btn" class="main-btn" disabled onclick="startCustomGame()">Start</button>
+            </div>
+        </div>
+
+        <br><br>
         <button class="main-btn" onclick="goBackFromDifficulty()">Back</button>
     </div>
 
