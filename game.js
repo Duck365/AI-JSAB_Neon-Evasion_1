@@ -88,8 +88,8 @@ function setPlayerColor(color) {
 }
 
 // Spawns a damaging block. 'life' reduces by 1 per frame; deleted if 0 or off-screen.
-function spawnProjectile(x, y, vx, vy, size, life = Infinity) {
-    projectiles.push({ x, y, vx, vy, size, life });
+function spawnProjectile(x, y, vx, vy, size, life = Infinity, isBouncy = false) {
+    projectiles.push({ x, y, vx, vy, size, life, isBouncy });
 }
 
 // Spawns a telegraph that counts down. When 0, the `update` loop processes it.
@@ -200,17 +200,11 @@ window.addEventListener('keyup', (e) => {
 // Edit these functions to change or add new attack patterns.
 
 function executePhase1(t) {
-    // 1.1: Diagonal Corners
-    if (t > 120 && t < 1600 && t % 15 === 0) {
-        let dist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
-        let speedMult = 8.5; 
-        let vx = (canvas.width / dist) * speedMult;
-        let vy = (canvas.height / dist) * speedMult;
-
-        spawnProjectile(0, 0, vx, vy, 15);
-        spawnProjectile(canvas.width, 0, -vx, vy, 15);
-        spawnProjectile(0, canvas.height, vx, -vy, 15);
-        spawnProjectile(canvas.width, canvas.height, -vx, -vy, 15);
+    // 1.1: Diagonal Charging Lasers (Replaced old corner bullets)
+    if (t > 120 && t < 1600 && t % 150 === 0) {
+        // Spawns thin warning lines that detonate into lasers 60 frames later
+        spawnWarning(0, 0, "diag_laser_1", 0, 0, 60); 
+        spawnWarning(canvas.width, 0, "diag_laser_2", 0, 0, 60);
     }
 
     // Pre-warning for spinner
@@ -218,7 +212,12 @@ function executePhase1(t) {
         spawnWarning(canvas.width/2, canvas.height/2, "spinner_warn", 0, 80, 60);
     }
 
-    // 1.2: Middle Spinner
+    // 1.2: Middle Spinner & Lycanthropy Bouncing Ball
+    if (t === 800) {
+        // Spawn the bouncing head! (Lasts exactly until phase 1.2 ends at 1600)
+        spawnProjectile(100, 100, 6, 6, 50, 800, true); 
+    }
+
     if (t > 800 && t < 1600 && t % 4 === 0) {
         let angle = t * 0.15;
         let cx = canvas.width / 2; let cy = canvas.height / 2;
@@ -230,14 +229,12 @@ function executePhase1(t) {
 
     // 1.3: Sweeping Walls
     if (t > 1560 && t < 2360) {
-        // Horizontal
         if (t % 80 === 0) {
             let dir = Math.random() > 0.5 ? 1 : -1;
             let startX = dir === 1 ? -50 : canvas.width + 50;
             let gapY = Math.random() * (canvas.height - 150) + 75;
             spawnWarning(startX, gapY, "wall_h", dir, 20, 40);
         }
-        // Vertical
         if (t % 110 === 0) {
             let dir = Math.random() > 0.5 ? 1 : -1;
             let startY = dir === 1 ? -50 : canvas.height + 50;
@@ -440,6 +437,16 @@ function update() {
                 for(let j=0; j<canvas.height; j+=25) spawnProjectile(w.x, j, 0, 0, 25, 45); // Static beam for 45 frames
             } else if (w.vx === "grid_laser_h") {
                 for(let j=0; j<canvas.width; j+=25) spawnProjectile(j, w.y, 0, 0, 25, 45); // Static beam for 45 frames
+            } else if (w.vx === "diag_laser_1") {
+                let dist = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
+                for(let i = 0; i < dist; i += 25) {
+                    spawnProjectile(i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 45);
+                }
+            } else if (w.vx === "diag_laser_2") {
+                let dist = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
+                for(let i = 0; i < dist; i += 25) {
+                    spawnProjectile(canvas.width - i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 45);
+                }
             } else if (w.vx === "spinner_warn" || w.vx === "middle_line") {
                 // Do nothing, purely visual warning
             } else {
@@ -459,12 +466,26 @@ function update() {
         p.y += p.vy;
         p.life--;
 
-        // Clean up out of bounds or expired
-        if (p.x < -100 || p.x > canvas.width + 100 || p.y < -100 || p.y > canvas.height + 100 || p.life <= 0) {
+        if (p.isBouncy) {
+            // Bounce off edges
+            if (p.x - p.size/2 < 0) { p.x = p.size/2; p.vx *= -1; }
+            if (p.x + p.size/2 > canvas.width) { p.x = canvas.width - p.size/2; p.vx *= -1; }
+            if (p.y - p.size/2 < 0) { p.y = p.size/2; p.vy *= -1; }
+            if (p.y + p.size/2 > canvas.height) { p.y = canvas.height - p.size/2; p.vy *= -1; }
+        } else {
+            // Clean up out of bounds
+            if (p.x < -100 || p.x > canvas.width + 100 || p.y < -100 || p.y > canvas.height + 100) {
+                projectiles.splice(i, 1);
+                continue;
+            }
+        }
+
+        // Expired life cleanup
+        if (p.life <= 0) {
             projectiles.splice(i, 1);
             continue;
         }
-
+        
         // Hit Detection
         if (player.isInvulnerable <= 0) {
             if (Math.abs(player.x - p.x) < (player.size/2 + p.size/2 - 3) && 
@@ -504,6 +525,32 @@ function draw() {
     // ------------------------------------------
     // STATIC INDICATOR RENDER PASS
     // ------------------------------------------
+    // Persistent Purple Circle for Phase 1.2 (Explodes at 800, Dilates at 1600)
+    let isPhase1_2 = (gameMode === 'full' && frameCount >= 800 && frameCount <= 1660) || 
+                     (gameMode === 'practice' && ['1', '1.2'].includes(selectedPracticePhase.charAt(0)) && frameCount >= 800 && frameCount <= 1660);
+
+    if (isPhase1_2) {
+        let cx = canvas.width / 2;
+        let cy = canvas.height / 2;
+        let radius = 80;
+        let opacity = 1;
+
+        // Dilation effect when ending
+        if (frameCount > 1600) {
+            let fadeProgress = (frameCount - 1600) / 60; 
+            radius = 80 + fadeProgress * 150; // Expand rapidly
+            opacity = 1 - fadeProgress; // Fade into nothing
+        }
+
+        if (opacity > 0) {
+            ctx.strokeStyle = `rgba(128, 0, 128, ${opacity})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = `rgba(128, 0, 128, ${opacity * 0.2})`;
+            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    
     let isPhase1_1 = (gameMode === 'full' && frameCount > 60 && frameCount < 1600) || 
                      (gameMode === 'practice' && (selectedPracticePhase === '1' || selectedPracticePhase === '1.1' || selectedPracticePhase === '1.2') && frameCount > 60 && frameCount < 1600);
     
@@ -636,6 +683,16 @@ function draw() {
                 ctx.fillStyle = 'white'; ctx.font = 'bold 1.5rem Courier New'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', 0, 0);
             }
             ctx.restore();
+        } 
+        else if (w.vx === "diag_laser_1") {
+            ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.7 * progress})`;
+            ctx.lineWidth = 2 + 5 * progress;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(canvas.width, canvas.height); ctx.stroke();
+        }
+        else if (w.vx === "diag_laser_2") {
+            ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.7 * progress})`;
+            ctx.lineWidth = 2 + 5 * progress;
+            ctx.beginPath(); ctx.moveTo(canvas.width,0); ctx.lineTo(0, canvas.height); ctx.stroke();
         }
         else {
             if (w.timer < 15 && frameCount % 4 < 2) continue; 
