@@ -201,8 +201,8 @@ window.addEventListener('keyup', (e) => {
 
 function executePhase1(t) {
     // 1.1: Diagonal Charging Lasers (Replaced old corner bullets)
-    if (t > 120 && t < 1600 && t % 150 === 0) {
-        // Spawns thin warning lines that detonate into lasers 60 frames later
+    if (t === 120) {
+        // Spawns once, warns for 60 frames, then fires at t=180
         spawnWarning(0, 0, "diag_laser_1", 0, 0, 60); 
         spawnWarning(canvas.width, 0, "diag_laser_2", 0, 0, 60);
     }
@@ -439,13 +439,14 @@ function update() {
                 for(let j=0; j<canvas.width; j+=25) spawnProjectile(j, w.y, 0, 0, 25, 45); // Static beam for 45 frames
             } else if (w.vx === "diag_laser_1") {
                 let dist = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
-                for(let i = 0; i < dist; i += 25) {
-                    spawnProjectile(i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 45);
+                // Spaced by 5px for a smooth line, 1380 life to last until Phase 1.3
+                for(let i = 0; i < dist; i += 5) {
+                    spawnProjectile(i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 1380);
                 }
             } else if (w.vx === "diag_laser_2") {
                 let dist = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
-                for(let i = 0; i < dist; i += 25) {
-                    spawnProjectile(canvas.width - i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 45);
+                for(let i = 0; i < dist; i += 5) {
+                    spawnProjectile(canvas.width - i * (canvas.width/dist), i * (canvas.height/dist), 0, 0, 25, 1380);
                 }
             } else if (w.vx === "spinner_warn" || w.vx === "middle_line") {
                 // Do nothing, purely visual warning
