@@ -49,7 +49,7 @@
     <div id="difficulty-screen" class="screen">
         <h2>SELECT DIFFICULTY</h2>
         <button onclick="startGame(10, 'Easy')">Easy (10 Hits)</button>
-        <button onclick="startGame(3, 'Normal')">Normal (3 Hits)</button>
+        <button onclick="startGame(5, 'Normal')">Normal (5 Hits)</button>
         <button onclick="startGame(1, 'Hardcore')">Hardcore (1 Hit)</button>
         <button onclick="startGame('Debug', 'Debug')">Debug (Invincible)</button>
         <br>
@@ -60,6 +60,7 @@
     <div id="customize-screen" class="screen">
         <h2>SELECT PLAYER COLOR</h2>
         <div class="color-grid">
+            <div class="color-btn" style="background: #00FFFF;" onclick="setPlayerColor('#00FFFF')"></div>
             <div class="color-btn" style="background: #00FF00;" onclick="setPlayerColor('#00FF00')"></div>
             <div class="color-btn" style="background: #FF00FF;" onclick="setPlayerColor('#FF00FF')"></div>
             <div class="color-btn" style="background: #FF0000;" onclick="setPlayerColor('#FF0000')"></div>
@@ -70,7 +71,7 @@
             <div class="color-btn" style="background: #FFFFFF;" onclick="setPlayerColor('#FFFFFF')"></div>
             <div class="color-btn" style="background: #000000; border: 1px solid #333;" onclick="setPlayerColor('#000000')"></div>
         </div>
-        <p>Current Color: <span id="current-color-text" style="color: cyan;">Cyan</span></p>
+        <p>Current Color: <span id="current-color-text" style="color: cyan;">#00FFFF</span></p>
         <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
     </div>
 
@@ -112,7 +113,7 @@
     <!-- Game Canvas & HUD -->
     <div id="hud">
         <div>Time: <span id="timer-display">0</span> <span id="timer-max">/ 150</span></div>
-        <div>HP: <span id="hp-display">6</span></div>
+        <div>HP: <span id="hp-display">5</span></div>
     </div>
     <canvas id="gameCanvas"></canvas>
 </div>
