@@ -1,4 +1,3 @@
-// Replace your existing game.js content
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -106,7 +105,7 @@ window.addEventListener('keydown', (e) => {
         player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
         
         player.dashCooldown = player.maxDashCooldown;
-        player.isInvulnerable = Math.max(player.isInvulnerable, 15); 
+        player.isInvulnerable = Math.max(player.isInvulnerable, 25); // Increased i-frames by roughly a millisecond
     }
 });
 
@@ -116,11 +115,15 @@ window.addEventListener('keyup', (e) => {
 
 function executePhase1(t) {
     if (t > 120 && t < 800 && t % 15 === 0) {
-        let speed = 6;
-        spawnProjectile(0, 0, speed, speed, 15);
-        spawnProjectile(canvas.width, 0, -speed, speed, 15);
-        spawnProjectile(0, canvas.height, speed, -speed, 15);
-        spawnProjectile(canvas.width, canvas.height, -speed, -speed, 15);
+        let dist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+        let speedMult = 8.5; // Roughly matches old diagonal speed
+        let vx = (canvas.width / dist) * speedMult;
+        let vy = (canvas.height / dist) * speedMult;
+
+        spawnProjectile(0, 0, vx, vy, 15);
+        spawnProjectile(canvas.width, 0, -vx, vy, 15);
+        spawnProjectile(0, canvas.height, vx, -vy, 15);
+        spawnProjectile(canvas.width, canvas.height, -vx, -vy, 15);
     }
 
     if (t === 740) {
@@ -179,6 +182,10 @@ function executePhase3(t) {
         spawnProjectile(px, py, vx, vy, Math.random()*12 + 8);
     }
 
+    if (t === 6740) {
+        spawnWarning(canvas.width / 2, canvas.height / 2, "middle_line", 0, 40, 60);
+    }
+
     if (t === 6800) {
         for(let i = 0; i < canvas.width; i += 25) {
             spawnProjectile(i, canvas.height / 2, 0, 0, 15);
@@ -194,9 +201,17 @@ function executePhase3(t) {
     
     if (t === 7900) { projectiles = []; warnings = []; }
 
-    if (t > 7960 && t < 9000 && t % 20 === 0) {
-        spawnWarning(player.x, player.y, "track", 0, 0, 30);
-        if (t % 40 === 0) spawnProjectile(Math.random()*canvas.width, -20, 0, 10, 15);
+    if (t > 7960 && t < 9000) {
+        if (t % 20 === 0) {
+            spawnWarning(player.x, player.y, "track", 0, 0, 30);
+            if (t % 40 === 0) spawnProjectile(Math.random()*canvas.width, -20, 0, 10, 15);
+        }
+        if (t % 60 === 0) {
+            let startX = Math.random() > 0.5 ? -20 : canvas.width + 20;
+            let startY = Math.random() * canvas.height;
+            // Store target X in vy, target Y in size
+            spawnWarning(startX, startY, "sniper_line", player.x, player.y, 45);
+        }
     }
 }
 
@@ -300,7 +315,10 @@ function update() {
                 }
             } else if (w.vx === "grid") {
                 for(let j = 0; j < Math.PI * 2; j += Math.PI / 4) spawnProjectile(w.x, w.y, Math.cos(j)*10, Math.sin(j)*10, 15);
-            } else if (w.vx === "spinner_warn") {
+            } else if (w.vx === "sniper_line") {
+                let angle = Math.atan2(w.size - w.y, w.vy - w.x);
+                spawnProjectile(w.x, w.y, Math.cos(angle)*18, Math.sin(angle)*18, 22);
+            } else if (w.vx === "spinner_warn" || w.vx === "middle_line") {
                 // Warning only
             } else {
                 for(let j = 0; j < Math.PI * 2; j += Math.PI / 6) spawnProjectile(w.x, w.y, Math.cos(j)*8, Math.sin(j)*8, 12);
@@ -352,12 +370,12 @@ function draw() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 1.1 Line Indicators
+    // 1.1 Line Indicators (Now noticeably brighter)
     let isPhase1_1 = (gameMode === 'full' && frameCount > 60 && frameCount < 800) || 
                      (gameMode === 'practice' && (selectedPracticePhase === '1' || selectedPracticePhase === '1.1') && frameCount > 60 && frameCount < 800);
     if (isPhase1_1) {
-        ctx.strokeStyle = `rgba(255, 0, 0, ${0.1 + 0.3 * Math.abs(Math.sin(frameCount * 0.1))})`;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(255, 50, 50, ${0.6 + 0.4 * Math.abs(Math.sin(frameCount * 0.1))})`;
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height);
         ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height);
@@ -398,6 +416,24 @@ function draw() {
             ctx.fillStyle = `rgba(255, 0, 0, ${0.2 + 0.3 * Math.sin(frameCount * 0.2)})`;
             let rectY = w.vy === 1 ? 0 : canvas.height - 40;
             ctx.fillRect(0, rectY, canvas.width, 40);
+        }
+        else if (w.vx === "middle_line") {
+            ctx.fillStyle = `rgba(255, 0, 0, ${0.3 + 0.3 * Math.sin(frameCount * 0.2)})`;
+            ctx.fillRect(0, canvas.height / 2 - 20, canvas.width, 40);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 3rem Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('!', canvas.width / 2, canvas.height / 2);
+        }
+        else if (w.vx === "sniper_line") {
+            let angle = Math.atan2(w.size - w.y, w.vy - w.x);
+            ctx.strokeStyle = `rgba(255, 50, 50, ${0.5 + 0.5 * Math.abs(Math.sin(frameCount * 0.2))})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(w.x, w.y);
+            ctx.lineTo(w.x + Math.cos(angle)*3000, w.y + Math.sin(angle)*3000);
+            ctx.stroke();
         }
         else if (w.vx === "spinner_warn") {
             let radius = w.size || 80;
