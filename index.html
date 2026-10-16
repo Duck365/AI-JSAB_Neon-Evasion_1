@@ -92,8 +92,16 @@
         <h2>HOW TO PLAY</h2>
         <p><strong>Arrow Keys / WASD</strong> - Movement</p>
         <p><strong>Spacebar</strong> - Teleport (Dash through attacks)</p>
+        <p><strong>P</strong> - Pause Game</p>
         <br>
         <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="screen" style="background: rgba(0, 0, 0, 0.95); z-index: 20;">
+        <h1>PAUSED</h1>
+        <button class="main-btn" onclick="resumeGame()">Resume</button>
+        <button class="main-btn" onclick="quitToMenu()">Menu</button>
     </div>
 
     <!-- Game Over Screen -->
