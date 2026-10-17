@@ -14,6 +14,7 @@
         <h1>NEON EVASION</h1>
         <button class="main-btn" onclick="setupMode('full'); showScreen('difficulty-screen')">Start 2:30 Fight</button>
         <button class="main-btn" onclick="showScreen('practice-phase-screen')">Practice</button>
+        <button class="main-btn" onclick="showScreen('extras-screen')">Extras</button>
         <button class="main-btn" onclick="showScreen('customize-screen')">Customize</button>
         <button class="main-btn" onclick="showScreen('keybinds-screen')">Keybinds</button>
     </div>
@@ -45,11 +46,38 @@
         <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
     </div>
 
+    <!-- Extras Screen -->
+    <div id="extras-screen" class="screen">
+        <h2>EXTRAS</h2>
+        <button class="main-btn" onclick="showScreen('special-screen')">Special</button>
+        <button class="main-btn" onclick="showScreen('challenges-screen')">Challenges</button>
+        <br><br>
+        <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
+    </div>
+
+    <!-- Special Screen -->
+    <div id="special-screen" class="screen">
+        <h2>SPECIAL MODES</h2>
+        <button class="main-btn" onclick="setupMode('multiplayer'); showScreen('difficulty-screen')">Multiplayer (Local Duo)</button>
+        <br><br>
+        <button class="main-btn" onclick="showScreen('extras-screen')">Back</button>
+    </div>
+
+    <!-- Challenges Screen -->
+    <div id="challenges-screen" class="screen">
+        <h2>CHALLENGES</h2>
+        <button class="main-btn" onclick="setupMode('invisible'); showScreen('difficulty-screen')">Invisible</button>
+        <button class="main-btn" onclick="setupMode('bullet-colored'); showScreen('difficulty-screen')">Bullet Colored</button>
+        <br><br>
+        <button class="main-btn" onclick="showScreen('extras-screen')">Back</button>
+    </div>
+
     <!-- Difficulty Selector Screen -->
     <div id="difficulty-screen" class="screen">
         <h2>SELECT DIFFICULTY</h2>
         <button onclick="startGame(10, 'Easy')">Easy (10 Hits)</button>
-        <button onclick="startGame(5, 'Normal')">Normal (5 Hits)</button>
+        <button onclick="startGame(8, 'Normal')">Normal (8 Hits)</button>
+        <button onclick="startGame(5, 'Hard')">Hard (5 Hits)</button>
         <button onclick="startGame(1, 'Hardcore')">Hardcore (1 Hit)</button>
         <button onclick="startGame('Debug', 'Debug')">Debug (Invincible)</button>
         
@@ -72,26 +100,45 @@
     <div id="customize-screen" class="screen">
         <h2>SELECT PLAYER COLOR</h2>
         <div class="color-grid">
-            <div class="color-btn" style="background: #00FFFF;" onclick="setPlayerColor('#00FFFF')"></div>
-            <div class="color-btn" style="background: #00FF00;" onclick="setPlayerColor('#00FF00')"></div>
-            <div class="color-btn" style="background: #FF00FF;" onclick="setPlayerColor('#FF00FF')"></div>
+            <!-- Row 1 -->
             <div class="color-btn" style="background: #FF0000;" onclick="setPlayerColor('#FF0000')"></div>
-            <div class="color-btn" style="background: #FFA500;" onclick="setPlayerColor('#FFA500')"></div>
+            <div class="color-btn" style="background: #FF7F00;" onclick="setPlayerColor('#FF7F00')"></div>
             <div class="color-btn" style="background: #FFFF00;" onclick="setPlayerColor('#FFFF00')"></div>
+            <div class="color-btn" style="background: #7FFF00;" onclick="setPlayerColor('#7FFF00')"></div>
+            <div class="color-btn" style="background: #00FF7F;" onclick="setPlayerColor('#00FF7F')"></div>
+            <!-- Row 2 -->
+            <div class="color-btn" style="background: #00FFFF;" onclick="setPlayerColor('#00FFFF')"></div>
+            <div class="color-btn" style="background: #007FFF;" onclick="setPlayerColor('#007FFF')"></div>
             <div class="color-btn" style="background: #0000FF;" onclick="setPlayerColor('#0000FF')"></div>
-            <div class="color-btn" style="background: #800080;" onclick="setPlayerColor('#800080')"></div>
+            <div class="color-btn" style="background: #7F00FF;" onclick="setPlayerColor('#7F00FF')"></div>
+            <div class="color-btn" style="background: #FF00FF;" onclick="setPlayerColor('#FF00FF')"></div>
+            <!-- Row 3 -->
+            <div class="color-btn" style="background: #FF007F;" onclick="setPlayerColor('#FF007F')"></div>
             <div class="color-btn" style="background: #FFFFFF;" onclick="setPlayerColor('#FFFFFF')"></div>
-            <div class="color-btn" style="background: #000000; border: 1px solid #333;" onclick="setPlayerColor('#000000')"></div>
+            <div class="color-btn" style="background: #C0C0C0;" onclick="setPlayerColor('#C0C0C0')"></div>
+            <div class="color-btn" style="background: #808080;" onclick="setPlayerColor('#808080')"></div>
+            <div class="color-btn" style="background: #4B0082;" onclick="setPlayerColor('#4B0082')"></div>
         </div>
-        <p>Current Color: <span id="current-color-text" style="color: cyan;">#00FFFF</span></p>
+        <p>Current Color: <span id="current-color-text" style="color: white;">#FFFFFF</span></p>
         <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
     </div>
 
     <!-- Keybinds Screen -->
     <div id="keybinds-screen" class="screen">
         <h2>HOW TO PLAY</h2>
-        <p><strong>Arrow Keys / WASD</strong> - Movement</p>
-        <p><strong>Spacebar</strong> - Teleport (Dash through attacks)</p>
+        
+        <h3>1-PLAYER MODE</h3>
+        <p><strong>Movement:</strong> Arrow Keys OR WASD</p>
+        <p><strong>Dash (Teleport):</strong> Spacebar</p>
+        
+        <br>
+        
+        <h3>2-PLAYER MULTIPLAYER</h3>
+        <p><strong>Player 1:</strong> Arrow Keys to move, Spacebar to dash</p>
+        <p><strong>Player 2:</strong> WASD to move, 'F' key to dash</p>
+        
+        <br>
+        
         <p><strong>P</strong> - Pause Game</p>
         <br>
         <button class="main-btn" onclick="showScreen('menu-screen')">Back</button>
